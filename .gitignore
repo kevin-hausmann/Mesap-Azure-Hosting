@@ -1,0 +1,7 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/Mesap Azure Hosting/Deployment.targets
+/Mesap Azure Hosting/Mesap Azure Hosting.deployproj

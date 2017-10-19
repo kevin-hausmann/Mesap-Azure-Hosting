@@ -1,0 +1,205 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "messageServerAdminPassword": {
+      "type": "securestring"
+    },
+    "databaseServerAdminPassword": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "backendNetworkName": "backend-network",
+    "backendNetworkPrefix": "10.0.0.0/16",
+    "backendNetworkSubnetName": "[concat(variables('backendNetworkName'),'-subnet')]",
+    "backendNetworkSubnetPrefix": "10.0.0.0/24",
+
+    "messageServerResourceName": "message-server-vm",
+    "messageServerComputerName": "mesapms",
+    "messageServerAdminName": "MesapAdmin",
+    "messageServerNicResourceName": "[concat(variables('messageServerResourceName'),'-nic')]",
+
+    "databaseServerResourceName": "database-server-vm",
+    "databaseServerComputerName": "pan-de14",
+    "databaseServerAdminName": "MesapDbAdmin",
+    "databaseServerNicResourceName": "[concat(variables('databaseServerResourceName'),'-nic')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2016-03-30",
+      "name": "[variables('backendNetworkName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('backendNetworkPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('backendNetworkSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('backendNetworkSubnetPrefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2017-03-30",
+      "name": "[variables('messageServerResourceName')]",
+      "location": "[resourceGroup().location]",
+      "comments": "VM running Mesap Message Server and other Mesap Services.",
+      "tags": {
+        "owner": "Mesap",
+        "layer": "Backend"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_A2_v2"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "osType": "Windows",
+            "name": "[concat(variables('messageServerResourceName'),'-os-disk')]",
+            "createOption": "FromImage",
+            "caching": "ReadWrite"
+          },
+          "dataDisks": []
+        },
+        "osProfile": {
+          "computerName": "[variables('messageServerComputerName')]",
+          "adminUsername": "[variables('messageServerAdminName')]",
+          "adminPassword": "[parameters('messageServerAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          },
+          "secrets": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('messageServerNicResourceName'))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('messageServerNicResourceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2016-03-30",
+      "name": "[variables('messageServerNicResourceName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[concat(variables('messageServerNicResourceName'),'-ipconfig')]",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName')), '/subnets/', variables('backendNetworkSubnetName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2017-03-30",
+      "name": "[variables('databaseServerResourceName')]",
+      "location": "[resourceGroup().location]",
+      "comments": "VM running MSSQL database server.",
+      "tags": {
+        "owner": "Mesap",
+        "layer": "Backend"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D2s_v3"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftSQLServer",
+            "offer": "SQL2017-WS2016",
+            "sku": "Standard",
+            "version": "latest"
+          },
+          "osDisk": {
+            "osType": "Linux",
+            "name": "[concat(variables('databaseServerResourceName'),'-os-disk')]",
+            "createOption": "FromImage",
+            "caching": "ReadWrite"
+          },
+          "dataDisks": [
+            {
+              "lun": 0,
+              "name": "[concat(variables('databaseServerResourceName'),'-data-disk')]",
+              "createOption": "Empty",
+              "caching": "ReadOnly"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[variables('databaseServerComputerName')]",
+          "adminUsername": "[variables('databaseServerAdminName')]",
+          "adminPassword": "[parameters('messageServerAdminPassword')]",
+          "windowsConfiguration": {
+            "provisionVMAgent": true,
+            "enableAutomaticUpdates": true
+          },
+          "secrets": []
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('databaseServerNicResourceName'))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('databaseServerNicResourceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2016-03-30",
+      "name": "[variables('databaseServerNicResourceName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[concat(variables('databaseServerNicResourceName'),'-ipconfig')]",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName')), '/subnets/', variables('backendNetworkSubnetName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName'))]"
+      ]
+    }
+  ],
+  "outputs": {}
+}
