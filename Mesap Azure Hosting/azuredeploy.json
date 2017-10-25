@@ -10,10 +10,14 @@
     }
   },
   "variables": {
-    "backendNetworkName": "backend-network",
-    "backendNetworkPrefix": "10.0.0.0/16",
-    "backendNetworkSubnetName": "[concat(variables('backendNetworkName'),'-subnet')]",
-    "backendNetworkSubnetPrefix": "10.0.0.0/24",
+    "networkName": "mesap-network",
+    "networkPrefix": "10.0.0.0/16",
+    "backendSubnetName": "[concat(variables('networkName'),'-backend')]",
+    "backendSubnetPrefix": "10.0.0.0/24",
+    "frontendSubnetName": "[concat(variables('networkName'),'-frontend')]",
+    "frontendSubnetPrefix": "10.0.1.0/24",
+    "vpnSubnetName": "[concat(variables('networkName'),'-vpn')]",
+    "vpnSubnetPrefix": "10.0.2.0/24",
 
     "messageServerResourceName": "message-server-vm",
     "messageServerComputerName": "mesapms",
@@ -29,19 +33,32 @@
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2016-03-30",
-      "name": "[variables('backendNetworkName')]",
+      "name": "[variables('networkName')]",
       "location": "[resourceGroup().location]",
+      "comments": "Our main resource wrapper. The virtual network is seperated into three subnets: backend, frontend and VPN.",
       "properties": {
         "addressSpace": {
           "addressPrefixes": [
-            "[variables('backendNetworkPrefix')]"
+            "[variables('networkPrefix')]"
           ]
         },
         "subnets": [
           {
-            "name": "[variables('backendNetworkSubnetName')]",
+            "name": "[variables('backendSubnetName')]",
             "properties": {
-              "addressPrefix": "[variables('backendNetworkSubnetPrefix')]"
+              "addressPrefix": "[variables('backendSubnetPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('frontendSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('frontendSubnetPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('vpnSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('vpnSubnetPrefix')]"
             }
           }
         ]
@@ -110,14 +127,14 @@
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
-                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName')), '/subnets/', variables('backendNetworkSubnetName'))]"
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('networkName')), '/subnets/', variables('backendSubnetName'))]"
               }
             }
           }
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('networkName'))]"
       ]
     },
     {
@@ -190,14 +207,14 @@
             "properties": {
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
-                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName')), '/subnets/', variables('backendNetworkSubnetName'))]"
+                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('networkName')), '/subnets/', variables('backendSubnetName'))]"
               }
             }
           }
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('backendNetworkName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('networkName'))]"
       ]
     }
   ],
