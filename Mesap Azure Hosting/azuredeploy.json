@@ -176,7 +176,7 @@
         "osProfile": {
           "computerName": "[variables('databaseServerComputerName')]",
           "adminUsername": "[variables('databaseServerAdminName')]",
-          "adminPassword": "[parameters('messageServerAdminPassword')]",
+          "adminPassword": "[parameters('databaseServerAdminPassword')]",
           "windowsConfiguration": {
             "provisionVMAgent": true,
             "enableAutomaticUpdates": true
